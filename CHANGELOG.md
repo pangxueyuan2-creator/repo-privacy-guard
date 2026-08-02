@@ -4,6 +4,12 @@ All notable changes are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Prevent scans from following symbolic links outside the selected path.
+- Match double-star ignore patterns across nested directories correctly.
+- Report result truncation and the number of actually scanned files accurately.
+
 ## [0.1.0] - 2026-08-02
 
 ### Added

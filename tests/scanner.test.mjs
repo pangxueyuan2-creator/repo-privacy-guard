@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -57,4 +57,49 @@ test("skips binary, large, and default ignored files", async () => {
   assert.equal(result.skipped.ignored, 1);
   assert.equal(result.skipped.binary, 1);
   assert.equal(result.skipped.large, 1);
+});
+
+test("does not follow symbolic links outside the scan root", async (context) => {
+  const root = await fixture();
+  const outside = await fixture();
+  const token = ["ghp", "A".repeat(30)].join("_");
+  await writeFile(path.join(outside, "secret.txt"), token);
+
+  try {
+    await symlink(outside, path.join(root, "linked"), process.platform === "win32" ? "junction" : "dir");
+  } catch (error) {
+    if (error.code === "EPERM") {
+      context.skip("Creating symbolic links is not permitted in this environment");
+      return;
+    }
+    throw error;
+  }
+
+  const result = await scanPath(root);
+  assert.equal(result.findings.length, 0);
+  assert.equal(result.scannedFiles, 0);
+  assert.equal(result.skipped.symlink, 1);
+});
+
+test("reports truncation and only counts files that were scanned", async () => {
+  const root = await fixture();
+  const token = ["ghp", "A".repeat(30)].join("_");
+  await writeFile(path.join(root, "a.txt"), token);
+  await writeFile(path.join(root, "b.txt"), token);
+
+  const result = await scanPath(root, { maxFindings: 1 });
+  assert.equal(result.findings.length, 1);
+  assert.equal(result.scannedFiles, 1);
+  assert.equal(result.truncated, true);
+});
+
+test("does not report truncation when the exact limit covers the full scan", async () => {
+  const root = await fixture();
+  const token = ["ghp", "A".repeat(30)].join("_");
+  await writeFile(path.join(root, "only.txt"), token);
+
+  const result = await scanPath(root, { maxFindings: 1 });
+  assert.equal(result.findings.length, 1);
+  assert.equal(result.scannedFiles, 1);
+  assert.equal(result.truncated, false);
 });

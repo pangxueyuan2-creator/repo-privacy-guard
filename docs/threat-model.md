@@ -11,7 +11,9 @@
 
 The scanner is designed to run on a trusted local checkout or GitHub Actions
 runner. It reads the target path and writes only when `--output` is supplied.
-It does not make network requests or execute scanned files.
+It does not make network requests or execute scanned files. Symbolic links are
+not followed, so a link inside the target cannot expand the scan into another
+location on the machine.
 
 Finding objects and normal reports do not include matched values. A truncated
 SHA-256-derived fingerprint is provided for correlation and is not intended as
@@ -22,6 +24,7 @@ an authentication or integrity primitive.
 - Pattern matching cannot detect every credential format.
 - Entropy is a heuristic and can produce false positives or false negatives.
 - Files larger than the configured limit and files detected as binary are skipped.
+- Symbolic links are skipped and their targets are not scanned.
 - Ignore rules and inline exceptions can hide real risks if misused.
 - Previously committed secrets remain compromised even after removal from HEAD.
 - The scanner does not validate whether a credential is active.
