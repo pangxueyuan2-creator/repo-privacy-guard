@@ -1,0 +1,25 @@
+name: Repo Privacy Guard
+description: Scan a repository for likely secrets and sensitive files without uploading its contents.
+author: pangxueyuan2-creator
+branding:
+  icon: shield
+  color: green
+inputs:
+  path:
+    description: File or directory to scan
+    required: false
+    default: .
+  minimum-severity:
+    description: Severity that fails the check (low, medium, high, or critical)
+    required: false
+    default: high
+  personal-data:
+    description: Also report email addresses and international phone numbers
+    required: false
+    default: "false"
+outputs:
+  findings:
+    description: Number of findings at or above the configured severity
+runs:
+  using: node20
+  main: action/index.mjs

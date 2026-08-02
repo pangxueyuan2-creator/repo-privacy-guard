@@ -1,0 +1,39 @@
+{
+  "name": "repo-privacy-guard",
+  "version": "0.1.0",
+  "description": "Offline-first secret and privacy scanner for repositories before they become public.",
+  "type": "module",
+  "license": "MIT",
+  "author": "pangxueyuan2-creator",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "repo-privacy-guard": "./src/cli.mjs"
+  },
+  "exports": {
+    ".": "./src/scanner.mjs",
+    "./reporters": "./src/reporters.mjs"
+  },
+  "files": [
+    "action",
+    "src",
+    "action.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "lint": "node --check src/cli.mjs && node --check src/scanner.mjs && node --check src/reporters.mjs && node --check action/index.mjs",
+    "scan:self": "node src/cli.mjs scan . --min-severity high",
+    "verify": "npm run lint && npm test && npm run scan:self && npm pack --dry-run"
+  },
+  "keywords": [
+    "security",
+    "secrets",
+    "privacy",
+    "git",
+    "github-action",
+    "scanner"
+  ]
+}

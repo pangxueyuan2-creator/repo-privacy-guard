@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a false positive, missed test fixture, or runtime problem.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Never paste a live credential. Replace sensitive values with synthetic examples.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include a redacted, minimal example and the expected result.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Windows 11, Node.js 22
+    validations:
+      required: true
