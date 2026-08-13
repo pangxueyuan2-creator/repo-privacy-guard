@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, readdir, stat } from "node:fs/promises";
+import { lstat, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { findHighEntropyAssignments } from "./entropy.mjs";
 import { createIgnoreMatcher, parseIgnoreFile } from "./ignore.mjs";
@@ -127,10 +127,15 @@ async function readIgnorePatterns(root) {
 }
 
 async function collectFiles(target, root, isIgnored, files, skipped) {
-  const info = await stat(target);
+  const info = await lstat(target);
   const relativePath = normalize(path.relative(root, target)) || path.basename(target);
   if (isIgnored(relativePath) && target !== root) {
     skipped.ignored += 1;
+    return;
+  }
+
+  if (info.isSymbolicLink()) {
+    skipped.symlink += 1;
     return;
   }
 
@@ -146,19 +151,30 @@ async function collectFiles(target, root, isIgnored, files, skipped) {
 
 export async function scanPath(targetPath = ".", options = {}) {
   const target = path.resolve(targetPath);
-  const targetInfo = await stat(target);
+  const targetInfo = await lstat(target);
+  if (targetInfo.isSymbolicLink()) {
+    throw new Error("Refusing to scan a symbolic-link target");
+  }
   const root = targetInfo.isDirectory() ? target : path.dirname(target);
   const ignorePatterns = await readIgnorePatterns(root);
   const isIgnored = createIgnoreMatcher([...ignorePatterns, ...(options.ignore ?? [])]);
   const files = [];
-  const skipped = { ignored: 0, large: 0, binary: 0 };
+  const skipped = { ignored: 0, large: 0, binary: 0, symlink: 0 };
   await collectFiles(target, root, isIgnored, files, skipped);
 
   const findings = [];
   const maxFileSize = options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
   const maxFindings = options.maxFindings ?? DEFAULT_MAX_FINDINGS;
+  let scannedFiles = 0;
+  let truncated = false;
 
-  for (const file of files) {
+  for (let fileIndex = 0; fileIndex < files.length; fileIndex += 1) {
+    if (findings.length >= maxFindings) {
+      truncated = true;
+      break;
+    }
+
+    const file = files[fileIndex];
     const filenameFinding = sensitiveFilenameFinding(file.relativePath);
     if (filenameFinding) findings.push(filenameFinding);
     if (file.size > maxFileSize) {
@@ -172,18 +188,23 @@ export async function scanPath(targetPath = ".", options = {}) {
       continue;
     }
 
-    findings.push(
-      ...inspectText(buffer.toString("utf8"), file.relativePath, {
-        personalData: options.personalData === true,
-        entropy: options.entropy,
-        minimumEntropy: options.minimumEntropy ?? 4.1,
-      }),
-    );
+    scannedFiles += 1;
+    const fileFindings = inspectText(buffer.toString("utf8"), file.relativePath, {
+      personalData: options.personalData === true,
+      entropy: options.entropy,
+      minimumEntropy: options.minimumEntropy ?? 4.1,
+    });
+    const remainingCapacity = Math.max(0, maxFindings - findings.length);
+    if (fileFindings.length > remainingCapacity) truncated = true;
+    findings.push(...fileFindings.slice(0, remainingCapacity));
 
-    if (findings.length >= maxFindings) break;
+    if (findings.length >= maxFindings && fileIndex < files.length - 1) {
+      truncated = true;
+      break;
+    }
   }
 
-  const limitedFindings = findings.slice(0, maxFindings).sort((left, right) =>
+  const limitedFindings = findings.sort((left, right) =>
     left.file.localeCompare(right.file) || left.line - right.line || left.ruleId.localeCompare(right.ruleId),
   );
   const minimumSeverity = options.minimumSeverity ?? "high";
@@ -191,9 +212,9 @@ export async function scanPath(targetPath = ".", options = {}) {
   return {
     version: 1,
     target,
-    scannedFiles: files.length - skipped.large - skipped.binary,
+    scannedFiles,
     skipped,
-    truncated: findings.length > maxFindings,
+    truncated,
     minimumSeverity,
     findings: limitedFindings,
     blockingFindings: limitedFindings.filter((finding) =>

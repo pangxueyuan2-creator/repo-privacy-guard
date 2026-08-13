@@ -19,13 +19,37 @@ function escapeRegExp(value) {
   return value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
 }
 
+function compileGlob(base) {
+  let expression = "";
+
+  for (let index = 0; index < base.length; index += 1) {
+    if (base[index] !== "*") {
+      expression += escapeRegExp(base[index]);
+      continue;
+    }
+
+    if (base[index + 1] !== "*") {
+      expression += "[^/]*";
+      continue;
+    }
+
+    if (base[index + 2] === "/") {
+      expression += "(?:.*/)?";
+      index += 2;
+    } else {
+      expression += ".*";
+      index += 1;
+    }
+  }
+
+  return expression;
+}
+
 function globToRegExp(glob) {
   const normalized = normalize(glob.trim()).replace(/^\//, "");
   const directoryOnly = normalized.endsWith("/");
   const base = directoryOnly ? normalized.slice(0, -1) : normalized;
-  const expression = escapeRegExp(base)
-    .replace(/\*\*/g, ".*")
-    .replace(/\*/g, "[^/]*");
+  const expression = compileGlob(base);
   const prefix = base.includes("/") ? "^" : "(?:^|/)";
   const suffix = directoryOnly ? "(?:/|$)" : "$";
   return new RegExp(`${prefix}${expression}${suffix}`);

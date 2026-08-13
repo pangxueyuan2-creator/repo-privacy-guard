@@ -34,6 +34,7 @@ exposure. Repo Privacy Guard provides a fast local check with redacted output.
 - Optionally checks email addresses and international phone numbers.
 - Supports text, JSON, and SARIF 2.1.0 reports.
 - Supports `.repoguardignore` and line-level `repoguard:allow` exceptions.
+- Does not follow symbolic links outside the selected scan tree.
 - Works as a CLI, JavaScript library, or reusable GitHub Action.
 - Never includes a matched secret value in its result object or normal output.
 

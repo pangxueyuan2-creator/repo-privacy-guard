@@ -21,6 +21,7 @@ Repo Privacy Guard 是一个离线优先的命令行工具和 GitHub Action。�
 - 可选检查邮箱地址和国际电话号码；
 - 支持文字、JSON 和 SARIF 报告；
 - 支持命令行、JavaScript API 和 GitHub Action；
+- 不会跟随符号链接进入所选扫描范围之外的位置；
 - 默认隐藏疑似密钥内容，避免在终端或 CI 日志中二次泄露。
 
 ## 快速使用
