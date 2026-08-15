@@ -1,12 +1,20 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import test from "node:test";
 import { scanPath } from "../src/scanner.mjs";
 
+const execFileAsync = promisify(execFile);
+
 async function fixture() {
   return mkdtemp(path.join(os.tmpdir(), "repo-privacy-guard-"));
+}
+
+async function git(root, ...args) {
+  await execFileAsync("git", ["-C", root, ...args]);
 }
 
 test("reports provider keys without returning their values", async () => {
@@ -102,4 +110,31 @@ test("does not report truncation when the exact limit covers the full scan", asy
   assert.equal(result.findings.length, 1);
   assert.equal(result.scannedFiles, 1);
   assert.equal(result.truncated, false);
+});
+
+test("staged mode scans only index content and skips deleted paths", async () => {
+  const root = await fixture();
+  await git(root, "init", "-b", "main");
+  await git(root, "config", "user.email", "test@example.invalid");
+  await git(root, "config", "user.name", "Test");
+
+  const token = ["ghp", "A".repeat(30)].join("_");
+  await writeFile(path.join(root, "safe.txt"), "hello\n");
+  await writeFile(path.join(root, "secret.txt"), `${token}\n`);
+  await writeFile(path.join(root, "gone.txt"), "will delete\n");
+  await git(root, "add", ".");
+  await git(root, "commit", "-m", "base");
+
+  // Stage a secret and a deletion; unstaged noise should be ignored.
+  await writeFile(path.join(root, "secret.txt"), `${token}\nstaged\n`);
+  await writeFile(path.join(root, "unstaged.txt"), `${token}\n`);
+  await git(root, "rm", "gone.txt");
+  await git(root, "add", "secret.txt");
+
+  const result = await scanPath(root, { staged: true });
+  assert.equal(result.staged, true);
+  assert.equal(result.findings.some((f) => f.file === "secret.txt"), true);
+  assert.equal(result.findings.some((f) => f.file === "unstaged.txt"), false);
+  assert.equal(result.findings.some((f) => f.file === "gone.txt"), false);
+  assert.equal(JSON.stringify(result).includes(token), false);
 });
