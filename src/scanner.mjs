@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
+import { execFile } from "node:child_process";
 import { lstat, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import { findHighEntropyAssignments } from "./entropy.mjs";
 import { createIgnoreMatcher, parseIgnoreFile } from "./ignore.mjs";
 import {
@@ -10,6 +12,7 @@ import {
   isAtLeastSeverity,
 } from "./patterns.mjs";
 
+const execFileAsync = promisify(execFile);
 const DEFAULT_MAX_FILE_SIZE = 1024 * 1024;
 const DEFAULT_MAX_FINDINGS = 200;
 
@@ -149,6 +152,48 @@ async function collectFiles(target, root, isIgnored, files, skipped) {
   }
 }
 
+/**
+ * List staged paths (Added / Copied / Modified / Renamed). Deleted paths are omitted.
+ * Content is read from the index (`git show :path`), not executed.
+ */
+async function collectStagedFiles(root, isIgnored, files, skipped) {
+  let stdout;
+  try {
+    ({ stdout } = await execFileAsync(
+      "git",
+      ["-C", root, "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"],
+      { maxBuffer: 8 * 1024 * 1024 },
+    ));
+  } catch (error) {
+    const detail = error.stderr?.toString?.() || error.message || "git failed";
+    throw new Error(`Cannot list staged files (is this a Git repository?): ${detail.trim()}`);
+  }
+
+  const paths = stdout.split("\0").filter(Boolean);
+  for (const raw of paths) {
+    const relativePath = normalize(raw);
+    if (isIgnored(relativePath)) {
+      skipped.ignored += 1;
+      continue;
+    }
+    // Size is unknown until we read the blob; use 0 placeholder and measure buffer later.
+    files.push({ absolutePath: null, relativePath, size: 0, staged: true });
+  }
+}
+
+async function readStagedBlob(root, relativePath) {
+  try {
+    const { stdout } = await execFileAsync(
+      "git",
+      ["-C", root, "show", `:${relativePath}`],
+      { encoding: "buffer", maxBuffer: 16 * 1024 * 1024 },
+    );
+    return stdout;
+  } catch {
+    return null;
+  }
+}
+
 export async function scanPath(targetPath = ".", options = {}) {
   const target = path.resolve(targetPath);
   const targetInfo = await lstat(target);
@@ -160,7 +205,12 @@ export async function scanPath(targetPath = ".", options = {}) {
   const isIgnored = createIgnoreMatcher([...ignorePatterns, ...(options.ignore ?? [])]);
   const files = [];
   const skipped = { ignored: 0, large: 0, binary: 0, symlink: 0 };
-  await collectFiles(target, root, isIgnored, files, skipped);
+
+  if (options.staged) {
+    await collectStagedFiles(root, isIgnored, files, skipped);
+  } else {
+    await collectFiles(target, root, isIgnored, files, skipped);
+  }
 
   const findings = [];
   const maxFileSize = options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
@@ -177,12 +227,26 @@ export async function scanPath(targetPath = ".", options = {}) {
     const file = files[fileIndex];
     const filenameFinding = sensitiveFilenameFinding(file.relativePath);
     if (filenameFinding) findings.push(filenameFinding);
-    if (file.size > maxFileSize) {
-      skipped.large += 1;
-      continue;
+
+    let buffer;
+    if (file.staged) {
+      buffer = await readStagedBlob(root, file.relativePath);
+      if (buffer === null) {
+        skipped.ignored += 1;
+        continue;
+      }
+      if (buffer.length > maxFileSize) {
+        skipped.large += 1;
+        continue;
+      }
+    } else {
+      if (file.size > maxFileSize) {
+        skipped.large += 1;
+        continue;
+      }
+      buffer = await readFile(file.absolutePath);
     }
 
-    const buffer = await readFile(file.absolutePath);
     if (containsNullByte(buffer)) {
       skipped.binary += 1;
       continue;
@@ -212,6 +276,7 @@ export async function scanPath(targetPath = ".", options = {}) {
   return {
     version: 1,
     target,
+    staged: Boolean(options.staged),
     scannedFiles,
     skipped,
     truncated,
