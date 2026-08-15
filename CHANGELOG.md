@@ -4,6 +4,10 @@ All notable changes are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- `--staged` mode scans only Git index paths (Added/Copied/Modified/Renamed), reads blob content from the index, skips deleted staged paths, and never executes repository code.
+
 ### Fixed
 
 - Prevent scans from following symbolic links outside the selected path.
