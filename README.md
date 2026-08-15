@@ -32,9 +32,10 @@ Exit codes: `0` clean, `1` findings, `2` error.
 ```bash
 repo-privacy-guard scan . --personal-data --min-severity low
 repo-privacy-guard scan . --format sarif --output report.sarif
+repo-privacy-guard scan . --staged   # only what is staged for the next commit
 ```
 
-Supports `.repoguardignore` and line-level `repoguard:allow`.
+`--staged` reads file content from the Git index (what will be committed), skips deleted paths, and never executes repository code. Supports `.repoguardignore` and line-level `repoguard:allow`.
 
 ## GitHub Action
 
