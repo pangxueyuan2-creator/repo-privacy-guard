@@ -1,10 +1,10 @@
 # Repo Privacy Guard
 
-**Find likely secrets and privacy risks before a repository becomes public.**
+Offline scanner that looks for likely secrets and privacy risks before you make a repository public.
 
-Offline-first CLI and GitHub Action. Detects common credentials, private keys, credentialed URLs, high-entropy values, and sensitive filenames. Output is redacted — matched values never appear in results.
+It checks for common credentials, private keys, credentialed URLs, high-entropy values, and sensitive filenames. Output is redacted — matched values never show up in the results.
 
-It reduces risk; it does not prove a repo is safe.
+It reduces risk. It does not prove a repo is safe.
 
 [简体中文](README.zh-CN.md)
 
@@ -47,4 +47,4 @@ Supports `.repoguardignore` and line-level `repoguard:allow`.
 
 ## Status
 
-Early version. Expect false positives and misses. MIT License.
+Early version. Expect false positives and misses. MIT.
