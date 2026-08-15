@@ -22,7 +22,8 @@ Repo Privacy Guard 是一个离线优先的命令行工具和 GitHub Action。�
 - 支持文字、JSON 和 SARIF 报告；
 - 支持命令行、JavaScript API 和 GitHub Action；
 - 不会跟随符号链接进入所选扫描范围之外的位置；
-- 默认隐藏疑似密钥内容，避免在终端或 CI 日志中二次泄露。
+- 默认隐藏疑似密钥内容，避免在终端或 CI 日志中二次泄露；
+- 支持 `--staged`：只检查即将提交的 Git index 内容，跳过已删除路径，不执行仓库代码。
 
 ## 快速使用
 
@@ -36,6 +37,12 @@ npx --yes github:pangxueyuan2-creator/repo-privacy-guard scan .
 
 ```bash
 repo-privacy-guard scan . --personal-data --min-severity low
+```
+
+只检查暂存区（即将 commit 的内容）：
+
+```bash
+repo-privacy-guard scan . --staged
 ```
 
 生成 SARIF 报告：
