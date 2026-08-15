@@ -3,7 +3,7 @@
 ## Near term
 
 - Add a documented baseline file for accepted historical findings.
-- Improve Git-aware scanning of staged files and commit ranges.
+- Improve Git-aware scanning of commit ranges (staged-file scanning is done via `--staged`).
 - Add more provider patterns backed by synthetic fixtures.
 - Add optional GitHub code-scanning upload documentation for SARIF reports.
 
