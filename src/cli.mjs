@@ -18,6 +18,7 @@ Options:
   --min-severity <level>      Exit 1 at low, medium, high, or critical (default: high)
   --personal-data             Also flag email addresses and international phone numbers
   --ignore <glob>             Add an ignore pattern (repeatable)
+  --staged                    Scan only Git staged files (index); skip deleted paths
   --max-file-size <bytes>     Skip larger files (default: 1048576)
   --max-findings <number>     Stop reporting after this many findings (default: 200)
   --no-entropy                Disable contextual high-entropy checks
@@ -25,7 +26,10 @@ Options:
   --help                      Show this help
 
 Use .repoguardignore for persistent ignore patterns. Add "repoguard:allow" to
-an intentionally safe line to suppress findings on that line.`;
+an intentionally safe line to suppress findings on that line.
+
+--staged reads content from the Git index (what will be committed) and never
+executes repository code. Deleted staged paths are ignored.`;
 }
 
 function valueAfter(args, index, option) {
@@ -37,7 +41,7 @@ function valueAfter(args, index, option) {
 function parseArgs(argv) {
   const args = [...argv];
   if (args[0] === "scan") args.shift();
-  const options = { format: "text", minimumSeverity: "high", ignore: [], entropy: true };
+  const options = { format: "text", minimumSeverity: "high", ignore: [], entropy: true, staged: false };
   let target = ".";
 
   for (let index = 0; index < args.length; index += 1) {
@@ -46,6 +50,7 @@ function parseArgs(argv) {
     if (argument === "--version" || argument === "-v") return { version: true };
     if (argument === "--personal-data") options.personalData = true;
     else if (argument === "--no-entropy") options.entropy = false;
+    else if (argument === "--staged") options.staged = true;
     else if (argument === "--format") options.format = valueAfter(args, index++, argument);
     else if (argument === "--output") options.output = valueAfter(args, index++, argument);
     else if (argument === "--min-severity") options.minimumSeverity = valueAfter(args, index++, argument);
