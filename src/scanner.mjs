@@ -26,9 +26,13 @@ function lineAndColumn(text, index) {
   return { line: lines.length, column: lines.at(-1).length + 1 };
 }
 
-function fingerprint(ruleId, file, matchedValue) {
+function fingerprint(ruleId, file, line, column) {
+  // Deliberately value-free: a fingerprint that hashes the matched value
+  // would let an attacker who knows the rule confirm candidate secrets
+  // against a published report (dictionary oracle). Identity comes from
+  // the rule and the location, never from the secret itself.
   return createHash("sha256")
-    .update(`${ruleId}\0${file}\0${matchedValue}`)
+    .update(`${ruleId}\0${file}\0${line}\0${column}`)
     .digest("hex")
     .slice(0, 16);
 }
@@ -42,7 +46,7 @@ function findingFromMatch({ rule, file, text, index, matchedValue, length }) {
     file,
     line: position.line,
     column: position.column,
-    fingerprint: fingerprint(rule.id, file, matchedValue),
+    fingerprint: fingerprint(rule.id, file, position.line, position.column),
     redacted: `<redacted:${length}>`,
   };
 }
@@ -115,7 +119,7 @@ function sensitiveFilenameFinding(relativePath) {
     file: relativePath,
     line: 1,
     column: 1,
-    fingerprint: fingerprint(rule.id, relativePath, relativePath),
+    fingerprint: fingerprint(rule.id, relativePath, 1, 1),
     redacted: "<filename-only>",
   };
 }

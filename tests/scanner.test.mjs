@@ -28,6 +28,21 @@ test("reports provider keys without returning their values", async () => {
   assert.equal(JSON.stringify(result).includes(secret), false);
 });
 
+test("fingerprints are value-free and location-bound", async () => {
+  const root = await fixture();
+  const first = ["sk", "A1b2C3d4E5f6G7h8I9j0K1l2M3n4"].join("-");
+  const second = ["sk", "Z9y8X7w6V5u4T3s2R1q0P9o8N7m6"].join("-");
+  const path1 = path.join(root, "config.js");
+  await writeFile(path1, `export const value = "${first}";\n`);
+  const firstScan = await scanPath(root);
+  await writeFile(path1, `export const value = "${second}";\n`);
+  const secondScan = await scanPath(root);
+  assert.equal(firstScan.findings[0].fingerprint, secondScan.findings[0].fingerprint);
+  await writeFile(path1, `export const value = "ok";\nexport const other = "${first}";\n`);
+  const movedScan = await scanPath(root);
+  assert.notEqual(firstScan.findings[0].fingerprint, movedScan.findings[0].fingerprint);
+});
+
 test("flags sensitive filenames and honors example files", async () => {
   const root = await fixture();
   await writeFile(path.join(root, ".env"), "SAFE_PLACEHOLDER=true\n");
