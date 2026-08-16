@@ -10,6 +10,10 @@ All notable changes are documented here.
 
 ### Fixed
 
+- Detect AWS secret access keys (`aws_secret_access_key=...`), not only AKIA/ASIA key IDs.
+- Detect high-entropy assignments with special characters and unquoted values (`password = Qx7!...`).
+- Report the scan target as given instead of the resolved absolute local path.
+- Redacted markers no longer disclose the length of the matched value.
 - Prevent scans from following symbolic links outside the selected path.
 - Match double-star ignore patterns across nested directories correctly.
 - Report result truncation and the number of actually scanned files accurately.
