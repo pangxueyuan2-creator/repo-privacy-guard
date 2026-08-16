@@ -47,7 +47,7 @@ function findingFromMatch({ rule, file, text, index, matchedValue, length }) {
     line: position.line,
     column: position.column,
     fingerprint: fingerprint(rule.id, file, position.line, position.column),
-    redacted: `<redacted:${length}>`,
+    redacted: "<redacted>",
   };
 }
 
@@ -279,7 +279,7 @@ export async function scanPath(targetPath = ".", options = {}) {
 
   return {
     version: 1,
-    target,
+    target: normalize(targetPath),
     staged: Boolean(options.staged),
     scannedFiles,
     skipped,

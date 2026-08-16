@@ -28,6 +28,13 @@ export const SECRET_PATTERNS = Object.freeze([
     flags: "g",
   },
   {
+    id: "aws-secret-key",
+    severity: "critical",
+    message: "Possible AWS secret access key",
+    source: String.raw`\baws[_-]?secret[_-]?access[_-]?key\s*[:=]\s*["']?[A-Za-z0-9/+=]{20,}`,
+    flags: "gi",
+  },
+  {
     id: "google-api-key",
     severity: "high",
     message: "Possible Google API key",

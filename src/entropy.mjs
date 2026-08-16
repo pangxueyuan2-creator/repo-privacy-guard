@@ -13,7 +13,7 @@ export function shannonEntropy(value) {
   return entropy;
 }
 
-const ASSIGNMENT_PATTERN = /\b(api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|password|passwd)\b\s*[:=]\s*["']([A-Za-z0-9_./+=-]{20,})["']/gi;
+const ASSIGNMENT_PATTERN = /\b(api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|password|passwd)\b\s*[:=]\s*["']?([A-Za-z0-9_./+=\-!@#$%^&*]{20,})/gi;
 
 export function findHighEntropyAssignments(text, minimumEntropy = 4.1) {
   const matches = [];
