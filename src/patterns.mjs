@@ -14,6 +14,20 @@ export const SECRET_PATTERNS = Object.freeze([
     flags: "g",
   },
   {
+    id: "anthropic-api-key",
+    severity: "critical",
+    message: "Possible Anthropic API key",
+    source: String.raw`\bsk-ant-[A-Za-z0-9_-]{20,}\b`,
+    flags: "g",
+  },
+  {
+    id: "xai-api-key",
+    severity: "critical",
+    message: "Possible xAI API key",
+    source: String.raw`\bxai-[A-Za-z0-9_-]{20,}\b`,
+    flags: "g",
+  },
+  {
     id: "github-token",
     severity: "critical",
     message: "Possible GitHub access token",
@@ -46,6 +60,13 @@ export const SECRET_PATTERNS = Object.freeze([
     severity: "critical",
     message: "Possible Slack token",
     source: String.raw`\bxox[baprs]-[0-9A-Za-z-]{10,}\b`,
+    flags: "g",
+  },
+  {
+    id: "slack-webhook",
+    severity: "critical",
+    message: "Possible Slack webhook URL",
+    source: String.raw`\bhttps:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9_]+\/[A-Za-z0-9_]+\/[A-Za-z0-9_]+\b`,
     flags: "g",
   },
   {
