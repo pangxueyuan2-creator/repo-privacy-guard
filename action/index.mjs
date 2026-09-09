@@ -16,11 +16,22 @@ async function setOutput(name, value) {
   }
 }
 
+function resolveWorkspacePath(workspace, configuredPath) {
+  const root = path.resolve(workspace);
+  const target = path.resolve(root, configuredPath);
+  const relative = path.relative(root, target);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error("Input path must stay within GITHUB_WORKSPACE");
+  }
+  return target;
+}
+
 try {
   const configuredPath = process.env.INPUT_PATH || ".";
   const minimumSeverity = process.env["INPUT_MINIMUM-SEVERITY"] || "high";
   const personalData = (process.env["INPUT_PERSONAL-DATA"] || "false").toLowerCase() === "true";
-  const target = path.resolve(process.env.GITHUB_WORKSPACE || process.cwd(), configuredPath);
+  const workspace = process.env.GITHUB_WORKSPACE || process.cwd();
+  const target = resolveWorkspacePath(workspace, configuredPath);
   const result = await scanPath(target, { minimumSeverity, personalData });
 
   for (const finding of result.findings) {
