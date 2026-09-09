@@ -56,6 +56,13 @@ export const SECRET_PATTERNS = Object.freeze([
     flags: "g",
   },
   {
+    id: "stripe-secret-key",
+    severity: "critical",
+    message: "Possible Stripe live secret or restricted key",
+    source: String.raw`\b(?:sk|rk)_live_[0-9A-Za-z]{20,}\b`,
+    flags: "g",
+  },
+  {
     id: "slack-token",
     severity: "critical",
     message: "Possible Slack token",
