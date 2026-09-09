@@ -27,6 +27,17 @@ test("detects Anthropic and xAI keys without returning their values", async () =
   assert.equal(JSON.stringify(result).includes(xai), false);
 });
 
+test("detects Stripe live secret keys without returning their values", async () => {
+  const root = await fixture();
+  const stripe = ["sk", "live", "A1b2C3d4E5f6G7h8I9j0K1l2"].join("_");
+  await writeFile(path.join(root, "billing.js"), 'const stripeKey = "' + stripe + '";\n');
+  const result = await scanPath(root);
+  assert.ok(
+    result.findings.some((finding) => finding.ruleId === "stripe-secret-key"),
+  );
+  assert.equal(JSON.stringify(result).includes(stripe), false);
+});
+
 test("detects Slack webhook URLs without returning their values", async () => {
   const root = await fixture();
   const hook = [
