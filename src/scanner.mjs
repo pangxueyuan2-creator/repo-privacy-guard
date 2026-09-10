@@ -124,7 +124,12 @@ function sensitiveFilenameFinding(relativePath) {
   };
 }
 
-async function readIgnorePatterns(root) {
+async function readIgnorePatterns(root, staged = false) {
+  if (staged) {
+    const buffer = await readStagedBlob(root, ".repoguardignore");
+    return buffer === null ? [] : parseIgnoreFile(buffer.toString("utf8"));
+  }
+
   try {
     return parseIgnoreFile(await readFile(path.join(root, ".repoguardignore"), "utf8"));
   } catch (error) {
@@ -205,7 +210,7 @@ export async function scanPath(targetPath = ".", options = {}) {
     throw new Error("Refusing to scan a symbolic-link target");
   }
   const root = targetInfo.isDirectory() ? target : path.dirname(target);
-  const ignorePatterns = await readIgnorePatterns(root);
+  const ignorePatterns = await readIgnorePatterns(root, options.staged === true);
   const isIgnored = createIgnoreMatcher([...ignorePatterns, ...(options.ignore ?? [])]);
   const files = [];
   const skipped = { ignored: 0, large: 0, binary: 0, symlink: 0 };
