@@ -35,6 +35,20 @@ export const SECRET_PATTERNS = Object.freeze([
     flags: "g",
   },
   {
+    id: "gitlab-access-token",
+    severity: "critical",
+    message: "Possible GitLab access token",
+    source: String.raw`\bglpat-[A-Za-z0-9]{20}\b`,
+    flags: "g",
+  },
+  {
+    id: "huggingface-access-token",
+    severity: "critical",
+    message: "Possible Hugging Face access token",
+    source: String.raw`\bhf_[A-Za-z0-9]{30,}\b`,
+    flags: "g",
+  },
+  {
     id: "npm-access-token",
     severity: "critical",
     message: "Possible npm access token",
