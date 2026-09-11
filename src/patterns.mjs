@@ -35,6 +35,20 @@ export const SECRET_PATTERNS = Object.freeze([
     flags: "g",
   },
   {
+    id: "npm-access-token",
+    severity: "critical",
+    message: "Possible npm access token",
+    source: String.raw`\bnpm_[A-Za-z0-9]{36}\b`,
+    flags: "g",
+  },
+  {
+    id: "pypi-api-token",
+    severity: "critical",
+    message: "Possible PyPI API token",
+    source: String.raw`\bpypi-[A-Za-z0-9_-]{40,}\b`,
+    flags: "g",
+  },
+  {
     id: "aws-access-key",
     severity: "critical",
     message: "Possible AWS access key ID",
