@@ -54,3 +54,20 @@ test("detects Slack webhook URLs without returning their values", async () => {
   );
   assert.equal(JSON.stringify(result).includes(hook), false);
 });
+
+test("detects npm and PyPI registry tokens without returning their values", async () => {
+  const root = await fixture();
+  const npmToken = ["npm", "A1".repeat(18)].join("_");
+  const pypiToken = ["pypi", "AgEI" + "B2".repeat(30)].join("-");
+  await writeFile(
+    path.join(root, "registry.env"),
+    `NPM_TOKEN=${npmToken}\nPYPI_TOKEN=${pypiToken}\n`,
+  );
+
+  const result = await scanPath(root);
+  const ids = result.findings.map((finding) => finding.ruleId);
+  assert.ok(ids.includes("npm-access-token"), JSON.stringify(ids));
+  assert.ok(ids.includes("pypi-api-token"), JSON.stringify(ids));
+  assert.equal(JSON.stringify(result).includes(npmToken), false);
+  assert.equal(JSON.stringify(result).includes(pypiToken), false);
+});
