@@ -71,3 +71,20 @@ test("detects npm and PyPI registry tokens without returning their values", asyn
   assert.equal(JSON.stringify(result).includes(npmToken), false);
   assert.equal(JSON.stringify(result).includes(pypiToken), false);
 });
+
+test("detects GitLab and Hugging Face access tokens without returning their values", async () => {
+  const root = await fixture();
+  const gitlabToken = ["glpat", "A1".repeat(10)].join("-");
+  const huggingFaceToken = ["hf", "B2".repeat(17)].join("_");
+  await writeFile(
+    path.join(root, "ml-ci.env"),
+    `GITLAB_TOKEN=${gitlabToken}\nHF_TOKEN=${huggingFaceToken}\n`,
+  );
+
+  const result = await scanPath(root);
+  const ids = result.findings.map((finding) => finding.ruleId);
+  assert.ok(ids.includes("gitlab-access-token"), JSON.stringify(ids));
+  assert.ok(ids.includes("huggingface-access-token"), JSON.stringify(ids));
+  assert.equal(JSON.stringify(result).includes(gitlabToken), false);
+  assert.equal(JSON.stringify(result).includes(huggingFaceToken), false);
+});
