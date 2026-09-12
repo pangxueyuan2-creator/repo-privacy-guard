@@ -10,6 +10,10 @@ export function formatText(result) {
     `Repo Privacy Guard scanned ${result.scannedFiles} file(s).`,
     `Findings: ${result.findings.length}; blocking at ${result.minimumSeverity}+: ${result.blockingFindings}.`,
   ];
+  if (result.gate) {
+    lines.push(`Strict gate: ${result.gate.decision}; complete: ${result.gate.complete}; scope: ${result.gate.scope}.`);
+    if (result.gate.reasons.length) lines.push(`Incomplete scan reasons: ${result.gate.reasons.join(", ")}.`);
+  }
 
   for (const finding of result.findings) {
     lines.push(
@@ -18,7 +22,9 @@ export function formatText(result) {
   }
 
   if (result.findings.length === 0) {
-    lines.push("No likely secrets or sensitive filenames were found.");
+    lines.push(result.gate && !result.gate.complete
+      ? "No findings were reported; this scan is incomplete."
+      : "No likely secrets or sensitive filenames were found.");
   }
   if (result.truncated) lines.push("Results were truncated at the configured limit.");
   lines.push("Matched values are intentionally redacted.");
@@ -43,6 +49,15 @@ export function formatSarif(result) {
     version: "2.1.0",
     runs: [{
       tool: { driver: { name: "Repo Privacy Guard", version: "0.1.0", rules } },
+      ...(result.gate ? {
+        properties: { strictGate: result.gate },
+        invocations: [{
+          executionSuccessful: result.gate.complete,
+          toolExecutionNotifications: result.gate.reasons.map((code) => ({
+            descriptor: { id: code }, level: "warning", message: { text: `Strict gate incomplete: ${code}` },
+          })),
+        }],
+      } : {}),
       results: result.findings.map((finding) => ({
         ruleId: finding.ruleId,
         level: SARIF_LEVEL[finding.severity],

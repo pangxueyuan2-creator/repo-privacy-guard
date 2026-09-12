@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import { lstat, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
+import { scanStrictPath } from "./strict.mjs";
 import { findHighEntropyAssignments } from "./entropy.mjs";
 import { createIgnoreMatcher, parseIgnoreFile } from "./ignore.mjs";
 import {
@@ -75,7 +76,7 @@ function inspectText(text, file, options) {
   for (const rule of rules) {
     const pattern = new RegExp(rule.source, rule.flags);
     for (const match of text.matchAll(pattern)) {
-      if (isAllowedLine(text, match.index ?? 0)) continue;
+      if (!options.strictGate && isAllowedLine(text, match.index ?? 0)) continue;
       findings.push(
         findingFromMatch({
           rule,
@@ -86,12 +87,13 @@ function inspectText(text, file, options) {
           length: match[0].length,
         }),
       );
+      if (findings.length >= (options.maxFindings ?? Infinity)) return findings;
     }
   }
 
   if (options.entropy !== false) {
-    for (const match of findHighEntropyAssignments(text, options.minimumEntropy)) {
-      if (isAllowedLine(text, match.index)) continue;
+    for (const match of findHighEntropyAssignments(text, options.minimumEntropy, options.maxFindings)) {
+      if (!options.strictGate && isAllowedLine(text, match.index)) continue;
       findings.push(
         findingFromMatch({
           rule: match,
@@ -102,6 +104,7 @@ function inspectText(text, file, options) {
           length: match.length,
         }),
       );
+      if (findings.length >= (options.maxFindings ?? Infinity)) return findings;
     }
   }
 
@@ -204,6 +207,9 @@ async function readStagedBlob(root, relativePath) {
 }
 
 export async function scanPath(targetPath = ".", options = {}) {
+  if (options.strictGate === true) {
+    return scanStrictPath(targetPath, options, { inspectText, sensitiveFilenameFinding });
+  }
   const target = path.resolve(targetPath);
   const targetInfo = await lstat(target);
   if (targetInfo.isSymbolicLink()) {

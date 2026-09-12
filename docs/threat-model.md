@@ -11,15 +11,28 @@
 
 The scanner is designed to run on a trusted local checkout or GitHub Actions
 runner. It reads the target path and writes only when `--output` is supplied.
-It does not make network requests or execute scanned files. Symbolic links are
-not followed, so a link inside the target cannot expand the scan into another
-location on the machine.
+It does not make network requests or execute scanned files. Stable symbolic links
+are rejected or skipped. This is an observed-filesystem boundary, not a sandbox:
+concurrent directory replacement can race filesystem operations.
 
 Finding objects and normal reports do not include matched values. A truncated
 SHA-256-derived fingerprint is provided for correlation and is not intended as
 an authentication or integrity primitive.
 
 ## Known limitations
+
+Strict mode (`--strict-gate`) rejects target-controlled suppressions and surfaces
+all observed content exclusions as incomplete, except the explicitly declared
+root `.git` metadata exclusion. Nested Git metadata is unsupported. Strict mode
+does not execute Git; staged strict scanning returns unknown. It checks metadata
+before/after reads and at the end of scanning, but does not provide an atomic
+snapshot or prevent concurrent change-and-restore attacks. Use an immutable source
+snapshot and externally bind the scanner revision and source digest for delivery
+receipts. Resource ceilings bound content and inventory work, while individual
+filesystem calls still require an external wall-clock watchdog. Names must be
+portable NFC path components without control characters or Windows device aliases.
+Strict pass attests only that this declared observation completed and no configured
+blocking detector fired; it does not attest credential absence or Git history safety.
 
 - Pattern matching cannot detect every credential format.
 - Entropy is a heuristic and can produce false positives or false negatives.

@@ -53,6 +53,25 @@ repo-privacy-guard scan . --format sarif --output result.sarif
 
 ## 注意
 
+自动化交付门禁可使用：
+
+```bash
+repo-privacy-guard scan /immutable/source-snapshot --strict-gate --format json
+```
+
+严格模式忽略目标仓库的 `.repoguardignore` 和 `repoguard:allow`，并扫描
+`dist`、`vendor`、`node_modules` 等通常跳过的目录。只排除并明确计数根目录
+的 `.git` 元数据。二进制、无效 UTF-8、符号链接、读取错误、扫描预算耗尽
+或观察到的文件变化会导致不完整结果。`gate.decision` 为小写 `pass`、
+`fail` 或 `unknown`，对应退出码 0、1、3；无效请求或操作错误为 2。
+已发现阻断风险时，即使扫描不完整也返回 `fail`。自动化必须检查该字段，
+不能把空发现列表当作通过。JSON 和 SARIF 都包含完整性与扫描范围。
+
+`--strict-gate --staged` 返回 `unknown`；弱化检测的忽略或关闭熵检查参数
+会被拒绝。当前 GitHub Action 保留原接口；严格门禁需显式调用 CLI。
+应扫描不可变的源文件快照，在调用端绑定源摘要与工具版本，并设置外部超时。
+这项检查不提供原子快照，也不能证明不存在任何格式的密钥。
+
 任何扫描工具都无法保证仓库绝对安全。请同时使用 GitHub 的密钥扫描、服务商
 密钥管理和人工代码审查。如果发现真实密钥，应立即去对应平台撤销并重新生成，
 仅从 Git 历史中删除并不足够。
