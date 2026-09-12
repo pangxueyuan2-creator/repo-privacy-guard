@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "lint": "node --check src/cli.mjs && node --check src/scanner.mjs && node --check src/reporters.mjs && node --check action/index.mjs",
+    "lint": "node --check src/cli.mjs && node --check src/scanner.mjs && node --check src/strict.mjs && node --check src/entropy.mjs && node --check src/reporters.mjs && node --check action/index.mjs",
     "scan:self": "node src/cli.mjs scan . --min-severity high",
     "verify": "npm run lint && npm test && npm run scan:self && npm pack --dry-run"
   },

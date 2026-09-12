@@ -6,6 +6,11 @@ All notable changes are documented here.
 
 ### Added
 
+- Opt-in `--strict-gate` / `strictGate: true` with explicit pass/fail/unknown decisions,
+  bounded tree scanning, completeness reasons in JSON and SARIF, and exit 3 for unknown.
+  Target ignore files, inline allow comments, and default ignore directories cannot
+  suppress strict findings. Root Git metadata is explicitly outside the declared scope.
+
 - `--staged` mode scans only Git index paths (Added/Copied/Modified/Renamed), reads blob content from the index, skips deleted staged paths, and never executes repository code.
 
 ### Fixed

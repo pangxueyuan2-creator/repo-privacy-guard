@@ -15,7 +15,7 @@ export function shannonEntropy(value) {
 
 const ASSIGNMENT_PATTERN = /\b(api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|password|passwd)\b\s*[:=]\s*["']?([A-Za-z0-9_./+=\-!@#$%^&*]{20,})/gi;
 
-export function findHighEntropyAssignments(text, minimumEntropy = 4.1) {
+export function findHighEntropyAssignments(text, minimumEntropy = 4.1, maxFindings = Infinity) {
   const matches = [];
   const pattern = new RegExp(ASSIGNMENT_PATTERN.source, ASSIGNMENT_PATTERN.flags);
   for (const match of text.matchAll(pattern)) {
@@ -28,6 +28,7 @@ export function findHighEntropyAssignments(text, minimumEntropy = 4.1) {
         severity: "high",
         message: `High-entropy value assigned to ${match[1]}`,
       });
+      if (matches.length >= maxFindings) break;
     }
   }
   return matches;

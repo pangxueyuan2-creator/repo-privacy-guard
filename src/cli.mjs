@@ -19,6 +19,7 @@ Options:
   --personal-data             Also flag email addresses and international phone numbers
   --ignore <glob>             Add an ignore pattern (repeatable)
   --staged                    Scan only Git staged files (index); skip deleted paths
+  --strict-gate               Bounded fail-closed gate; exit 3 when scan is incomplete
   --max-file-size <bytes>     Skip larger files (default: 1048576)
   --max-findings <number>     Stop reporting after this many findings (default: 200)
   --no-entropy                Disable contextual high-entropy checks
@@ -29,7 +30,12 @@ Use .repoguardignore for persistent ignore patterns. Add "repoguard:allow" to
 an intentionally safe line to suppress findings on that line.
 
 --staged reads content from the Git index (what will be committed) and never
-executes repository code. Deleted staged paths are ignored.`;
+executes repository code. Deleted staged paths are ignored.
+
+--strict-gate disables ignore files, inline allow comments, and default ignored
+directories. Only root .git metadata is outside its tree scope. Binary, unreadable,
+oversized, or otherwise unscanned content makes the result unknown (exit 3).
+Strict staged scans are unknown; weakening flags are invalid (exit 2).`;
 }
 
 function valueAfter(args, index, option) {
@@ -51,6 +57,7 @@ function parseArgs(argv) {
     if (argument === "--personal-data") options.personalData = true;
     else if (argument === "--no-entropy") options.entropy = false;
     else if (argument === "--staged") options.staged = true;
+    else if (argument === "--strict-gate") options.strictGate = true;
     else if (argument === "--format") options.format = valueAfter(args, index++, argument);
     else if (argument === "--output") options.output = valueAfter(args, index++, argument);
     else if (argument === "--min-severity") options.minimumSeverity = valueAfter(args, index++, argument);
@@ -94,9 +101,11 @@ async function main() {
     const report = formatResult(result, format);
     if (output) await writeFile(output, `${report}\n`, "utf8");
     else console.log(report);
-    if (result.blockingFindings > 0) process.exitCode = 1;
+    if (result.gate?.decision === "unknown") process.exitCode = 3;
+    else if (result.gate?.decision === "fail" || result.blockingFindings > 0) process.exitCode = 1;
   } catch (error) {
-    console.error(`Repo Privacy Guard: ${error.message}`);
+    const detail = process.argv.includes("--strict-gate") ? "Strict gate request could not be completed" : error.message;
+    console.error(`Repo Privacy Guard: ${detail}`);
     console.error("Run with --help for usage.");
     process.exitCode = 2;
   }
